@@ -1,0 +1,33 @@
+name: Störungs-Check
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # GitHub führt das oft mit einigen Minuten Verzögerung aus
+  workflow_dispatch: {}
+concurrency: { group: stoerungs-check, cancel-in-progress: false }
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Letzten Zustand laden
+        uses: actions/cache/restore@v4
+        with:
+          path: worker/state.json
+          key: stoerung-state-${{ github.run_id }}
+          restore-keys: stoerung-state-
+      - name: Dienste prüfen
+        run: node worker/check.mjs
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          M365_TENANT_ID: ${{ secrets.M365_TENANT_ID }}
+          M365_CLIENT_ID: ${{ secrets.M365_CLIENT_ID }}
+          M365_CLIENT_SECRET: ${{ secrets.M365_CLIENT_SECRET }}
+      - name: Zustand speichern
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: worker/state.json
+          key: stoerung-state-${{ github.run_id }}
