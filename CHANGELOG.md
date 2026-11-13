@@ -9,6 +9,7 @@ Versionen nach [Semantic Versioning](https://semver.org/lang/de/).
 - Erreichbarkeits-Check folgt keinen Weiterleitungen mehr (Fehlalarm bei Outlook), Fehlerursache wird genauer protokolliert.
 - GitHub Actions auf Node-24-Versionen aktualisiert.
 - Zustand wird auch bei „Re-run“ gespeichert (vorher doppelte Meldungen möglich).
+- Doppeltes Warn-Emoji in ntfy-Nachrichten entfernt.
 
 ## [1.0.0] – 2026-11-13
 

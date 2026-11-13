@@ -23,7 +23,8 @@ for (const c of changes) {
   const res = await fetch(`${server}/${encodeURIComponent(topic)}`, {
     method: 'POST',
     body: n.body || n.title,
-    headers: { Title: title, Priority: n.recovered ? 'default' : 'high', Tags: n.recovered ? 'white_check_mark' : 'warning' },
+    // Kein Tags-Header: das Emoji steht schon im Titel (sonst doppelt)
+    headers: { Title: title, Priority: n.recovered ? 'default' : 'high' },
   });
   console.log(`ntfy → ${n.title}: HTTP ${res.status}`);
 }
