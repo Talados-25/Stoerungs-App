@@ -9,7 +9,7 @@ const http = (id, name, url) => ({ id, name, kind: 'http', url });
 export const CATALOG = [
   // Microsoft
   { id: 'm365-tenant', name: 'Microsoft 365 (eigener Tenant, Graph API)', kind: 'm365graph', workerOnly: true },
-  http('m365-outlook', 'Outlook / M365 Erreichbarkeit', 'https://outlook.office.com/'),
+  http('m365-outlook', 'Outlook / M365 Erreichbarkeit', 'https://outlook.office365.com/'),
   http('m365-teams', 'Teams Erreichbarkeit', 'https://teams.microsoft.com/'),
   { id: 'azure', name: 'Microsoft Azure', kind: 'rss', url: 'https://azure.status.microsoft/en-us/status/feed/' },
   // Google
@@ -50,13 +50,14 @@ export function resolveServices(entries) {
     .filter(Boolean);
 }
 
-async function get(url, { timeoutMs = 15000, headers = {}, fetchImpl = fetch } = {}) {
+async function get(url, { timeoutMs = 15000, headers = {}, fetchImpl = fetch, redirect = 'follow' } = {}) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     return await fetchImpl(url, {
       headers: { 'User-Agent': 'stoerungs-monitor/1.0', ...headers },
       signal: ctrl.signal,
+      redirect,
     });
   } finally {
     clearTimeout(t);
@@ -122,9 +123,11 @@ const checkers = {
     const start = Date.now();
     let r;
     try {
-      r = await get(svc.url, { ...opts, timeoutMs: 10000 });
+      // Weiterleitungen (z. B. zur Microsoft-Anmeldung) nicht folgen: eine Antwort genügt als „erreichbar“.
+      r = await get(svc.url, { ...opts, timeoutMs: 15000, redirect: 'manual' });
     } catch (e) {
-      return { level: 'major', message: `Nicht erreichbar (${e.name === 'AbortError' ? 'Timeout' : e.message})`, incidents: [] };
+      const why = e.name === 'AbortError' ? 'Timeout' : [e.message, e.cause?.code ?? e.cause?.message].filter(Boolean).join(': ');
+      return { level: 'major', message: `Nicht erreichbar (${why})`, incidents: [] };
     }
     const ms = Date.now() - start;
     if (r.status >= 500) return { level: 'major', message: `Server-Fehler HTTP ${r.status}`, incidents: [] };

@@ -5,6 +5,10 @@ Versionen nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Behoben
+- Erreichbarkeits-Check folgt keinen Weiterleitungen mehr (Fehlalarm bei Outlook), Fehlerursache wird genauer protokolliert.
+- GitHub Actions auf Node-24-Versionen aktualisiert.
+
 ## [1.0.0] – 2026-11-13
 
 ### Hinzugefügt
