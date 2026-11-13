@@ -6,7 +6,7 @@ Versionen nach [Semantic Versioning](https://semver.org/lang/de/).
 ## [Unreleased]
 
 ### Behoben
-- Erreichbarkeits-Check folgt keinen Weiterleitungen mehr (Fehlalarm bei Outlook), Fehlerursache wird genauer protokolliert.
+- Erreichbarkeits-Check folgt keinen Weiterleitungen mehr (z. B. zur Microsoft-Anmeldung), Fehlerursache wird genauer protokolliert.
 - GitHub Actions auf Node-24-Versionen aktualisiert.
 - Zustand wird auch bei „Re-run“ gespeichert (vorher doppelte Meldungen möglich).
 - Doppeltes Warn-Emoji in ntfy-Nachrichten entfernt.
