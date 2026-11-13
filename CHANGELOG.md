@@ -11,6 +11,9 @@ Versionen nach [Semantic Versioning](https://semver.org/lang/de/).
 - Zustand wird auch bei „Re-run“ gespeichert (vorher doppelte Meldungen möglich).
 - Doppeltes Warn-Emoji in ntfy-Nachrichten entfernt.
 
+### Geändert
+- Reserve-Zeitplan auf ungerade 5-Minuten-Takte; Anleitung für zuverlässigen 5-Minuten-Takt über cron-job.org.
+
 ## [1.0.0] – 2026-11-13
 
 ### Hinzugefügt

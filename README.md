@@ -40,7 +40,33 @@ und schickt Pushes über die kostenlose App **ntfy** (App Store).
 4. In der App „Cloud-Konfig teilen“ tippen, den Text in `worker/services.json` einfügen, committen.
 5. *Actions → Störungs-Check → Run workflow* zum Testen. Danach läuft es automatisch.
 
-Hinweis: GitHub startet geplante Läufe teils mit Verzögerung; rechne mit 10–20 Minuten Reaktionszeit.
+### Zuverlässig alle 5 Minuten prüfen (cron-job.org)
+
+GitHub startet zeitgesteuerte Läufe nur „nach Möglichkeit“ – oft nur etwa stündlich.
+Ein Anstoß von außen wird dagegen sofort ausgeführt:
+
+1. **GitHub-Token erstellen:** Profilbild → *Settings* → *Developer settings* →
+   *Personal access tokens* → *Fine-grained tokens* → *Generate new token*
+   - Name: `cron-job Störungsmelder`, Ablauf: so lang wie möglich
+   - *Repository access*: **Only select repositories** → dieses Repository
+   - *Permissions* → *Repository permissions* → **Actions: Read and write** (sonst nichts)
+   - *Generate token* → Token kopieren (wird nur einmal angezeigt)
+2. Auf **cron-job.org** kostenlos registrieren → *Create cronjob*
+   - **URL:** `https://api.github.com/repos/<benutzer>/<repo>/actions/workflows/stoerungs-check.yml/dispatches`
+     (`<benutzer>/<repo>` durch deins ersetzen)
+   - **Zeitplan:** alle 5 Minuten
+   - Reiter *Advanced*:
+     - **Request method:** `POST`
+     - **Headers:**
+       - `Accept` = `application/vnd.github+json`
+       - `Authorization` = `Bearer <dein Token>`
+       - `X-GitHub-Api-Version` = `2022-11-28`
+     - **Request body:** `{"ref":"main"}`
+   - Speichern → *Test run*: Antwort **204** = alles richtig.
+3. Unter *Actions* erscheinen jetzt alle 5 Minuten Läufe mit dem Auslöser „workflow_dispatch“.
+
+Der GitHub-eigene Zeitplan bleibt als Reserve aktiv. Das Token läuft irgendwann ab –
+GitHub schickt vorher eine E-Mail; dann neues Token erstellen und bei cron-job.org eintragen.
 
 ## Welche Quellen werden genutzt?
 
