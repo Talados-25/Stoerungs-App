@@ -13,8 +13,8 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: { node-version: 22, cache: npm }
       - run: npm ci
       - name: iOS-Projekt erzeugen
@@ -35,7 +35,7 @@ jobs:
           cp -R build/Build/Products/Release-iphoneos/Stoerungsmelder.app Payload/
           zip -qry "Stoerungsmelder-$VERSION.ipa" Payload
           echo "file=Stoerungsmelder-$VERSION.ipa" >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.pack.outputs.file }}
           path: ${{ steps.pack.outputs.file }}
