@@ -9,11 +9,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: { node-version: 22 }
       - name: Letzten Zustand laden
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: worker/state.json
           key: stoerung-state-${{ github.run_id }}
@@ -27,7 +27,7 @@ jobs:
           M365_CLIENT_SECRET: ${{ secrets.M365_CLIENT_SECRET }}
       - name: Zustand speichern
         if: always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: worker/state.json
           key: stoerung-state-${{ github.run_id }}
