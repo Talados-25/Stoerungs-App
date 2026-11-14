@@ -5,6 +5,17 @@ Versionen nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [1.3.0] – 2026-11-14
+
+### Hinzugefügt
+- Tippen auf eine ntfy-Nachricht (oder den Knopf „Störungsmelder öffnen“) öffnet direkt die App (`stoerungsmelder://`).
+- Schalter „Benachrichtigungen der App“ in den Einstellungen – standardmäßig aus, damit jede Meldung nur einmal (über ntfy) kommt.
+- Anzeige „Hintergrund-Prüfung durch iOS“: wann und wie oft iOS die App im Hintergrund geweckt hat.
+
+### Geändert
+- Cloud-Prüfer veröffentlicht bei ntfy als JSON (Umlaute/Emojis ohne Header-Kodierung, Aktionsknopf).
+- Die App fragt nur noch nach der Mitteilungs-Erlaubnis, wenn ihre eigenen Benachrichtigungen eingeschaltet werden.
+
 ## [1.2.0] – 2026-11-14
 
 ### Hinzugefügt
@@ -41,7 +52,8 @@ Versionen nach [Semantic Versioning](https://semver.org/lang/de/).
 - Hintergrund-Prüfung für eigene Builds (nicht in Expo Go verfügbar).
 - IPA-Build über GitHub Actions (macOS) zum Installieren per AltStore/Sideloadly, IPA wird an Releases angehängt.
 
-[Unreleased]: https://github.com/Talados-25/Stoerungs-App/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/Talados-25/Stoerungs-App/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/Talados-25/Stoerungs-App/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Talados-25/Stoerungs-App/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Talados-25/Stoerungs-App/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Talados-25/Stoerungs-App/releases/tag/v1.0.0

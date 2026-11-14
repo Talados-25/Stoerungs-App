@@ -1,4 +1,4 @@
-// Läuft per GitHub Actions alle ~10 Min, prüft die Dienste und schickt bei
+// Läuft per GitHub Actions (alle ~5 Min über cron-job.org), prüft die Dienste und schickt bei
 // Änderungen eine Push-Nachricht über ntfy (https://ntfy.sh) an dein iPhone.
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolveServices, checkService, diffResults, formatChange } from '../shared/checks.js';
@@ -16,15 +16,23 @@ const results = await Promise.all(services.map((s) => checkService(s, { env: pro
 for (const r of results) console.log(`${r.level.padEnd(11)} ${r.name} – ${r.message}`);
 
 const { state, changes } = diffResults(services, results, prev);
+// Tippen auf die Nachricht (oder den Knopf) öffnet die Störungsmelder-App auf dem iPhone.
+const APP_URL = process.env.APP_URL || 'stoerungsmelder://';
+
 for (const c of changes) {
   const n = formatChange(c);
-  // Header müssen ASCII sein → Titel per RFC 2047 kodieren
-  const title = `=?UTF-8?B?${Buffer.from(n.title).toString('base64')}?=`;
-  const res = await fetch(`${server}/${encodeURIComponent(topic)}`, {
+  // Veröffentlichen als JSON: erlaubt Umlaute/Emojis ohne Header-Kodierung und Aktionen.
+  const res = await fetch(server, {
     method: 'POST',
-    body: n.body || n.title,
-    // Kein Tags-Header: das Emoji steht schon im Titel (sonst doppelt)
-    headers: { Title: title, Priority: n.recovered ? 'default' : 'high' },
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      topic,
+      title: n.title,
+      message: n.body || n.title,
+      priority: n.recovered ? 3 : 4, // 3 = normal, 4 = hoch
+      click: APP_URL,
+      actions: [{ action: 'view', label: 'Störungsmelder öffnen', url: APP_URL, clear: true }],
+    }),
   });
   console.log(`ntfy → ${n.title}: HTTP ${res.status}`);
 }

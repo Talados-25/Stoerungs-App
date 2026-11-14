@@ -18,6 +18,13 @@ Expo Go unterstützt auf iOS **keine Hintergrund-Tasks und keine Remote-Pushes**
 trotzdem gewarnt wirst, prüft ein kleines Skript per **GitHub Actions** alle ~10 Minuten
 und schickt Pushes über die kostenlose App **ntfy** (App Store).
 
+**Benachrichtigungen im Überblick (eigene App, ab v1.3.0):** Zuverlässige Meldungen kommen
+über ntfy. Ein Tipp auf die Nachricht (oder auf „Störungsmelder öffnen“) öffnet direkt die App.
+Die App kann zusätzlich selbst melden (Zahnrad → „Benachrichtigungen der App“, standardmäßig aus),
+aber nur, wenn sie gerade prüft – also beim Öffnen oder wenn iOS sie im Hintergrund kurz weckt.
+Wie oft iOS das tut, zeigt das Zahnrad unter „Hintergrund-Prüfung durch iOS“.
+Echte Pushes direkt an die App bräuchten ein bezahltes Apple-Entwicklerkonto.
+
 ## 1. App starten (Windows/Linux, ohne Mac)
 
 1. Node.js 20+ installieren, dann im Projektordner:

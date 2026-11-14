@@ -3,13 +3,14 @@
 import { isRunningInExpoGo } from 'expo';
 import * as BackgroundTask from 'expo-background-task';
 import * as TaskManager from 'expo-task-manager';
-import { runChecks } from './monitor';
+import { recordBackgroundRun, runChecks } from './monitor';
 
 const TASK = 'stoerungs-check';
 
 if (!isRunningInExpoGo()) {
   TaskManager.defineTask(TASK, async () => {
     try {
+      await recordBackgroundRun();
       await runChecks();
       return BackgroundTask.BackgroundTaskResult.Success;
     } catch {
