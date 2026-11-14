@@ -1,9 +1,10 @@
 name: Störungs-Check
 on:
   schedule:
-    # Reserve-Zeitplan auf ungeraden Minuten (runde Zeiten überspringt GitHub oft).
-    # Zuverlässig alle 5 Min wird der Lauf zusätzlich von außen angestoßen (cron-job.org, siehe README).
-    - cron: '3-59/5 * * * *'
+    # Der 5-Minuten-Takt kommt von außen (cron-job.org, siehe README).
+    # Dieser Zeitplan ist nur Reserve, falls cron-job.org ausfällt: einmal pro Stunde,
+    # auf einer ungeraden Minute (runde Zeiten überspringt GitHub oft).
+    - cron: '17 * * * *'
   workflow_dispatch: {}
 concurrency: { group: stoerungs-check, cancel-in-progress: false }
 jobs:
