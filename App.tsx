@@ -11,8 +11,8 @@ import { SymbolView } from 'expo-symbols';
 import * as Notifications from 'expo-notifications';
 import { LEVEL_LABEL, type CheckResult, type Level, type Service } from './shared/checks';
 import {
-  allServices, exportWorkerConfig, loadCustom, loadResults, loadSelected,
-  runChecks, saveCustom, saveSelected,
+  allServices, exportWorkerConfig, loadAppNotify, loadBackgroundStats, loadCustom, loadResults,
+  loadSelected, runChecks, saveAppNotify, saveCustom, saveSelected, type BackgroundStats,
 } from './src/monitor';
 import { registerBackgroundCheck } from './src/background';
 import { THEME_LABEL, ThemeContext, useTheme, useThemeState, type Theme, type ThemePref } from './src/theme';
@@ -74,7 +74,8 @@ function Main() {
 
   useEffect(() => {
     (async () => {
-      await Notifications.requestPermissionsAsync();
+      // Nur nachfragen, wenn die App selbst benachrichtigen soll (Standard: aus, ntfy übernimmt)
+      if (await loadAppNotify()) await Notifications.requestPermissionsAsync();
       await reloadConfig();
       setResults(await loadResults());
       setBgActive(await registerBackgroundCheck());
@@ -193,8 +194,34 @@ function Picker({ visible, services, selected, onClose }: {
   const [url, setUrl] = useState('');
   const [kind, setKind] = useState<'statuspage' | 'http'>('http');
   const [list, setList] = useState(services);
+  const [appNotify, setAppNotify] = useState(false);
+  const [bgStats, setBgStats] = useState<BackgroundStats | null>(null);
 
-  useEffect(() => { if (visible) { setSel(selected); setList(services); } }, [visible, selected, services]);
+  useEffect(() => {
+    if (!visible) return;
+    setSel(selected);
+    setList(services);
+    loadAppNotify().then(setAppNotify);
+    loadBackgroundStats().then(setBgStats);
+  }, [visible, selected, services]);
+
+  const toggleAppNotify = async (on: boolean) => {
+    if (on) {
+      const { granted } = await Notifications.requestPermissionsAsync();
+      if (!granted) {
+        Alert.alert(
+          'Benachrichtigungen nicht erlaubt',
+          'Bitte in den iPhone-Einstellungen → Störungsmelder → Mitteilungen erlauben.',
+        );
+        return;
+      }
+    }
+    setAppNotify(on);
+    await saveAppNotify(on);
+  };
+
+  const fmt = (iso: string) =>
+    new Date(iso).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
   const toggle = (id: string) => setSel((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
@@ -235,6 +262,24 @@ function Picker({ visible, services, selected, onClose }: {
             <Btn key={p} label={THEME_LABEL[p]} onPress={() => setPref(p)} primary={pref === p} />
           ))}
         </View>
+
+        <Text style={styles.h2}>Benachrichtigungen</Text>
+        <View style={styles.pickRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.name}>Benachrichtigungen der App</Text>
+            <Text style={styles.muted}>
+              Aus empfohlen: Zuverlässige Meldungen kommen über ntfy, ein Tipp darauf öffnet diese App.
+              Eingeschaltet meldet die App zusätzlich selbst – aber nur, wenn sie gerade prüft.
+            </Text>
+          </View>
+          <Switch value={appNotify} onValueChange={toggleAppNotify} />
+        </View>
+        <Text style={[styles.muted, { marginTop: 8, marginBottom: 20 }]}>
+          Hintergrund-Prüfung durch iOS:{' '}
+          {bgStats
+            ? `zuletzt ${fmt(bgStats.last)}, ${bgStats.count}× seit ${fmt(bgStats.since)}`
+            : 'bisher noch nie'}
+        </Text>
 
         <Text style={styles.h2}>Dienste</Text>
         {list.map((s) => (

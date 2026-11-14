@@ -5,7 +5,10 @@ import {
   type CheckResult, type Service, type ServiceState,
 } from '../shared/checks';
 
-const K = { selected: 'selected', custom: 'custom', state: 'state', results: 'results' };
+const K = {
+  selected: 'selected', custom: 'custom', state: 'state', results: 'results',
+  appNotify: 'appNotify', bgStats: 'bgStats',
+};
 
 const load = async <T,>(key: string, fallback: T): Promise<T> => {
   try {
@@ -25,6 +28,20 @@ export const loadCustom = () => load<Service[]>(K.custom, []);
 export const saveCustom = (s: Service[]) => save(K.custom, s);
 export const loadResults = () => load<Record<string, CheckResult>>(K.results, {});
 
+/** Eigene Benachrichtigungen der App – standardmäßig aus, weil ntfy zuverlässiger meldet. */
+export const loadAppNotify = () => load<boolean>(K.appNotify, false);
+export const saveAppNotify = (on: boolean) => save(K.appNotify, on);
+
+export interface BackgroundStats { last: string; count: number; since: string }
+
+/** Wird bei jedem Aufwecken durch iOS im Hintergrund aufgerufen. */
+export async function recordBackgroundRun(): Promise<void> {
+  const now = new Date().toISOString();
+  const prev = await load<BackgroundStats | null>(K.bgStats, null);
+  await save(K.bgStats, { last: now, count: (prev?.count ?? 0) + 1, since: prev?.since ?? now });
+}
+export const loadBackgroundStats = () => load<BackgroundStats | null>(K.bgStats, null);
+
 export async function allServices(): Promise<Service[]> {
   return [...CATALOG, ...(await loadCustom())];
 }
@@ -34,13 +51,16 @@ export async function selectedServices(): Promise<Service[]> {
   return ids.map((id) => all.find((s) => s.id === id)).filter((s): s is Service => !!s && !s.workerOnly);
 }
 
-/** Prüft alle gewählten Dienste, speichert Ergebnisse und sendet lokale Benachrichtigungen bei Änderungen. */
+/**
+ * Prüft alle gewählten Dienste und speichert die Ergebnisse.
+ * Lokale Benachrichtigungen nur, wenn „Benachrichtigungen der App“ eingeschaltet ist.
+ */
 export async function runChecks(): Promise<Record<string, CheckResult>> {
   const services = await selectedServices();
   const results = await Promise.all(services.map((s) => checkService(s)));
-  const prev = await load<ServiceState>(K.state, {});
+  const [prev, notify] = await Promise.all([load<ServiceState>(K.state, {}), loadAppNotify()]);
   const { state, changes } = diffResults(services, results, prev);
-  for (const c of changes) {
+  for (const c of notify ? changes : []) {
     const n = formatChange(c);
     await Notifications.scheduleNotificationAsync({
       content: { title: n.title, body: n.body, sound: true },
