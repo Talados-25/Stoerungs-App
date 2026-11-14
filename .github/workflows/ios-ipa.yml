@@ -40,7 +40,16 @@ jobs:
           name: ${{ steps.pack.outputs.file }}
           path: ${{ steps.pack.outputs.file }}
           retention-days: 30
+      - name: AltStore-Quelle erzeugen
+        if: github.event_name == 'release'
+        run: |
+          plutil -convert json -o info.json Payload/Stoerungsmelder.app/Info.plist
+          node scripts/make-altstore-source.mjs info.json "${{ steps.pack.outputs.file }}" source.json
+        env:
+          REPO: ${{ github.repository }}
+          TAG: ${{ github.event.release.tag_name }}
+          RELEASE_NOTES: ${{ github.event.release.body }}
       - name: An Release anhängen
         if: github.event_name == 'release'
-        run: gh release upload "${{ github.event.release.tag_name }}" "${{ steps.pack.outputs.file }}" --clobber
+        run: gh release upload "${{ github.event.release.tag_name }}" "${{ steps.pack.outputs.file }}" source.json --clobber
         env: { GH_TOKEN: '${{ github.token }}' }
