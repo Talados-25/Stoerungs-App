@@ -2,16 +2,21 @@
   "expo": {
     "name": "Stoerungsmelder",
     "slug": "stoerungs-app",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": false,
-      "buildNumber": "2",
+      "buildNumber": "3",
       "bundleIdentifier": "com.stoerungsmelder.app",
       "infoPlist": {
         "CFBundleDisplayName": "Störungsmelder"
+      },
+      "icon": {
+        "light": "./assets/icon.png",
+        "dark": "./assets/icon-dark.png",
+        "tinted": "./assets/icon-tinted.png"
       }
     },
     "android": {
