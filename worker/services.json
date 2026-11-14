@@ -1,1 +1,14 @@
-["m365-outlook", "m365-teams", "youtube", "google-workspace", "github", "discord"]
+[
+  "m365-outlook",
+  "m365-teams",
+  "youtube",
+  "google-workspace",
+  "azure",
+  "discord",
+  "cloudflare",
+  "claude",
+  "slack",
+  "spotify",
+  "whatsapp",
+  "github"
+]
