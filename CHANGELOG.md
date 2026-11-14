@@ -5,6 +5,9 @@ Versionen nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Geändert
+- Reserve-Zeitplan des Cloud-Prüfers auf einmal pro Stunde reduziert; den 5-Minuten-Takt übernimmt cron-job.org.
+
 ## [1.3.0] – 2026-11-14
 
 ### Hinzugefügt

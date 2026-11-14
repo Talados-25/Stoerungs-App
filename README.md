@@ -72,7 +72,7 @@ Ein Anstoß von außen wird dagegen sofort ausgeführt:
    - Speichern → *Test run*: Antwort **204** = alles richtig.
 3. Unter *Actions* erscheinen jetzt alle 5 Minuten Läufe mit dem Auslöser „workflow_dispatch“.
 
-Der GitHub-eigene Zeitplan bleibt als Reserve aktiv. Das Token läuft irgendwann ab –
+Der GitHub-eigene Zeitplan bleibt als Reserve aktiv (einmal pro Stunde), falls cron-job.org ausfällt. Das Token läuft irgendwann ab –
 GitHub schickt vorher eine E-Mail; dann neues Token erstellen und bei cron-job.org eintragen.
 
 ## Welche Quellen werden genutzt?
