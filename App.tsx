@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, AppState, FlatList, Modal, Pressable, RefreshControl,
+  Alert, AppState, FlatList, Modal, Pressable, RefreshControl,
   ScrollView, Share, StyleSheet, Switch, Text, TextInput, View,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
@@ -14,6 +14,7 @@ import {
   runChecks, saveCustom, saveSelected,
 } from './src/monitor';
 import { registerBackgroundCheck } from './src/background';
+import { THEME_LABEL, ThemeContext, useTheme, useThemeState, type Theme, type ThemePref } from './src/theme';
 
 const POLL_MS = 2 * 60 * 1000; // solange die App offen ist
 
@@ -23,19 +24,25 @@ Notifications.setNotificationHandler({
   }),
 });
 
-const COLORS: Record<Level, string> = {
-  ok: '#22a06b', minor: '#e2a400', major: '#d93025', maintenance: '#4c8bf5', unknown: '#9aa0a6',
-};
-
 export default function App() {
+  const themeState = useThemeState();
   return (
-    <SafeAreaProvider>
-      <Main />
-    </SafeAreaProvider>
+    <ThemeContext.Provider value={themeState}>
+      <SafeAreaProvider>
+        <Main />
+      </SafeAreaProvider>
+    </ThemeContext.Provider>
   );
 }
 
+function useStyles() {
+  const { theme } = useTheme();
+  return useMemo(() => makeStyles(theme), [theme]);
+}
+
 function Main() {
+  const { theme } = useTheme();
+  const styles = useStyles();
   const [services, setServices] = useState<Service[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [results, setResults] = useState<Record<string, CheckResult>>({});
@@ -92,10 +99,10 @@ function Main() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
-      <StatusBar style="dark" />
+      <StatusBar style={theme.dark ? 'light' : 'dark'} />
       <View style={styles.header}>
         <Text style={styles.h1}>Störungsmelder</Text>
-        <Text style={[styles.summary, { color: problems ? COLORS.major : COLORS.ok }]}>
+        <Text style={[styles.summary, { color: problems ? theme.level.major : theme.level.ok }]}>
           {problems ? `${problems} Dienst(e) mit Störung` : 'Keine bekannten Störungen'}
         </Text>
         <Text style={styles.muted}>
@@ -118,14 +125,14 @@ function Main() {
       <FlatList
         data={visible}
         keyExtractor={(s) => s.id}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} />}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={theme.muted} />}
         contentContainerStyle={{ padding: 16, gap: 10 }}
         ListEmptyComponent={<Text style={styles.muted}>Keine Dienste ausgewählt.</Text>}
         renderItem={({ item }) => <ServiceRow svc={item} res={results[item.id]} />}
       />
 
       <View style={styles.footer}>
-        <Btn label="Dienste auswählen" onPress={() => setShowPicker(true)} primary />
+        <Btn label="Einstellungen" onPress={() => setShowPicker(true)} primary />
         <Btn
           label="Cloud-Konfig teilen"
           onPress={async () => Share.share({ message: await exportWorkerConfig() })}
@@ -147,13 +154,15 @@ function Main() {
 }
 
 function ServiceRow({ svc, res }: { svc: Service; res?: CheckResult }) {
+  const { theme } = useTheme();
+  const styles = useStyles();
   const level: Level = svc.workerOnly ? 'unknown' : res?.level ?? 'unknown';
   return (
     <View style={styles.card}>
       <View style={styles.row}>
-        <View style={[styles.dot, { backgroundColor: COLORS[level] }]} />
+        <View style={[styles.dot, { backgroundColor: theme.level[level] }]} />
         <Text style={styles.name} numberOfLines={1}>{svc.name}</Text>
-        <Text style={[styles.badge, { color: COLORS[level] }]}>{LEVEL_LABEL[level]}</Text>
+        <Text style={[styles.badge, { color: theme.level[level] }]}>{LEVEL_LABEL[level]}</Text>
       </View>
       <Text style={styles.muted}>
         {svc.workerOnly ? 'Wird nur vom Cloud-Prüfer überwacht' : res?.message ?? 'Wird geprüft …'}
@@ -168,6 +177,8 @@ function ServiceRow({ svc, res }: { svc: Service; res?: CheckResult }) {
 function Picker({ visible, services, selected, onClose }: {
   visible: boolean; services: Service[]; selected: string[]; onClose: () => void;
 }) {
+  const { theme, pref, setPref } = useTheme();
+  const styles = useStyles();
   const [sel, setSel] = useState<string[]>(selected);
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
@@ -198,13 +209,25 @@ function Picker({ visible, services, selected, onClose }: {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={styles.modalHead}>
-        <Text style={styles.h2}>Dienste</Text>
+      <View style={[styles.modalHead, { backgroundColor: theme.bg }]}>
+        <Text style={styles.h1small}>Einstellungen</Text>
         <Pressable onPress={async () => { await saveSelected(sel); onClose(); }}>
           <Text style={styles.link}>Fertig</Text>
         </Pressable>
       </View>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 4 }} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={{ backgroundColor: theme.bg }}
+        contentContainerStyle={{ padding: 16, gap: 4 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={styles.h2}>Darstellung</Text>
+        <View style={[styles.row, { marginTop: 6, marginBottom: 20 }]}>
+          {(['auto', 'light', 'dark'] as ThemePref[]).map((p) => (
+            <Btn key={p} label={THEME_LABEL[p]} onPress={() => setPref(p)} primary={pref === p} />
+          ))}
+        </View>
+
+        <Text style={styles.h2}>Dienste</Text>
         {list.map((s) => (
           <View key={s.id} style={styles.pickRow}>
             <View style={{ flex: 1 }}>
@@ -212,7 +235,7 @@ function Picker({ visible, services, selected, onClose }: {
               {s.workerOnly && <Text style={styles.muted}>Nur Cloud-Prüfer (braucht Admin-Zugang)</Text>}
               {s.custom && (
                 <Pressable onPress={() => removeCustom(s.id)}>
-                  <Text style={[styles.muted, { color: COLORS.major }]}>Entfernen</Text>
+                  <Text style={[styles.muted, { color: theme.level.major }]}>Entfernen</Text>
                 </Pressable>
               )}
             </View>
@@ -221,9 +244,13 @@ function Picker({ visible, services, selected, onClose }: {
         ))}
 
         <Text style={[styles.h2, { marginTop: 24 }]}>Eigenen Dienst hinzufügen</Text>
-        <TextInput style={styles.input} placeholder="Name, z. B. Meine Website" value={name} onChangeText={setName} />
         <TextInput
-          style={styles.input} placeholder="https://…" value={url} onChangeText={setUrl}
+          style={styles.input} placeholder="Name, z. B. Meine Website" placeholderTextColor={theme.muted}
+          value={name} onChangeText={setName} keyboardAppearance={theme.dark ? 'dark' : 'light'}
+        />
+        <TextInput
+          style={styles.input} placeholder="https://…" placeholderTextColor={theme.muted}
+          value={url} onChangeText={setUrl} keyboardAppearance={theme.dark ? 'dark' : 'light'}
           autoCapitalize="none" autoCorrect={false} keyboardType="url"
         />
         <View style={styles.row}>
@@ -242,6 +269,7 @@ function Picker({ visible, services, selected, onClose }: {
 }
 
 function Btn({ label, onPress, primary }: { label: string; onPress: () => void; primary?: boolean }) {
+  const styles = useStyles();
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.btn, primary && styles.btnPrimary, pressed && { opacity: 0.6 }]}>
       <Text style={[styles.btnText, primary && { color: '#fff' }]}>{label}</Text>
@@ -249,27 +277,28 @@ function Btn({ label, onPress, primary }: { label: string; onPress: () => void; 
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#f4f5f7' },
+const makeStyles = (t: Theme) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: t.bg },
   header: { paddingHorizontal: 16, paddingTop: 8, gap: 2 },
-  h1: { fontSize: 30, fontWeight: '700' },
-  h2: { fontSize: 20, fontWeight: '600' },
+  h1: { fontSize: 30, fontWeight: '700', color: t.text },
+  h1small: { fontSize: 24, fontWeight: '700', color: t.text },
+  h2: { fontSize: 20, fontWeight: '600', color: t.text },
   summary: { fontSize: 16, fontWeight: '600' },
-  muted: { color: '#6b6f76', fontSize: 13 },
-  note: { margin: 16, marginBottom: 0, padding: 10, borderRadius: 10, backgroundColor: '#fff4ce' },
-  noteText: { fontSize: 13, color: '#5c4400' },
-  card: { backgroundColor: '#fff', borderRadius: 12, padding: 12, gap: 4 },
+  muted: { color: t.muted, fontSize: 13 },
+  note: { margin: 16, marginBottom: 0, padding: 10, borderRadius: 10, backgroundColor: t.noteBg },
+  noteText: { fontSize: 13, color: t.noteText },
+  card: { backgroundColor: t.card, borderRadius: 12, padding: 12, gap: 4 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dot: { width: 12, height: 12, borderRadius: 6 },
-  name: { fontSize: 16, fontWeight: '500', flexShrink: 1 },
+  name: { fontSize: 16, fontWeight: '500', flexShrink: 1, color: t.text },
   badge: { marginLeft: 'auto', fontWeight: '600', fontSize: 13 },
-  incident: { fontSize: 13, color: '#333' },
+  incident: { fontSize: 13, color: t.text },
   footer: { flexDirection: 'row', gap: 10, padding: 16, paddingBottom: 32 },
-  btn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', backgroundColor: '#e3e5e8' },
-  btnPrimary: { backgroundColor: '#0a66d8' },
-  btnText: { fontWeight: '600', color: '#111' },
+  btn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', backgroundColor: t.btn },
+  btnPrimary: { backgroundColor: t.primary },
+  btnText: { fontWeight: '600', color: t.btnText },
   modalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
-  link: { color: '#0a66d8', fontSize: 17, fontWeight: '600' },
-  pickRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#ccc' },
-  input: { backgroundColor: '#fff', borderRadius: 10, padding: 12, fontSize: 16, borderWidth: 1, borderColor: '#ddd' },
+  link: { color: t.primary, fontSize: 17, fontWeight: '600' },
+  pickRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: t.border },
+  input: { backgroundColor: t.input, color: t.text, borderRadius: 10, padding: 12, fontSize: 16, borderWidth: 1, borderColor: t.border },
 });

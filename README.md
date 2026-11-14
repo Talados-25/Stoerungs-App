@@ -28,7 +28,7 @@ und schickt Pushes über die kostenlose App **ntfy** (App Store).
    npx expo start --tunnel
    ```
 2. **Expo Go** aus dem App Store installieren, QR-Code mit der iPhone-Kamera scannen.
-3. Benachrichtigungen erlauben → „Dienste auswählen“.
+3. Benachrichtigungen erlauben → „Einstellungen“ → Dienste auswählen.
 
 ## 2. Cloud-Prüfer einrichten (Pushes auch bei geschlossener App)
 
@@ -97,11 +97,23 @@ Du signierst sie mit deiner kostenlosen Apple-ID und installierst sie per **AltS
 4. Auf dem iPhone: *Einstellungen → Datenschutz & Sicherheit → Entwicklermodus* einschalten
    (Neustart), dann *Einstellungen → Allgemein → VPN & Geräteverwaltung* → deiner Apple-ID vertrauen.
 
-**App installieren / aktualisieren**
+**App installieren / aktualisieren – über die eigene AltStore-Quelle (empfohlen)**
+
+1. In AltStore → *Sources* → **„+“** → diese Adresse eintragen:
+   `https://github.com/<benutzer>/<repo>/releases/latest/download/source.json`
+   (`<benutzer>/<repo>` durch deins ersetzen).
+2. Die Quelle „Störungsmelder“ öffnen → **Free** bzw. **Get** → installieren.
+3. Neue Versionen erscheinen danach unter *My Apps* mit **„Update“** – ein Tipp genügt.
+
+Jedes veröffentlichte Release (ab v1.1.0) aktualisiert die Quelle automatisch.
+
+**Alternativ: manuell**
 
 1. Auf GitHub unter **Releases** die neueste `Stoerungsmelder-x.y.z.ipa` herunterladen
    (direkt auf dem iPhone in Safari → in „Dateien“ speichern).
 2. In AltStore → *My Apps* → **„+“** → die IPA auswählen.
+
+Updates ersetzen die installierte App; Einstellungen und gewählte Dienste bleiben erhalten.
 
 **Erneuern alle 7 Tage**
 

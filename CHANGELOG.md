@@ -5,14 +5,21 @@ Versionen nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [1.1.0] – 2026-11-14
+
+### Hinzugefügt
+- Darkmode: folgt automatisch der iPhone-Einstellung, wählbar unter Einstellungen → Darstellung (Automatisch / Hell / Dunkel).
+- AltStore-Quelle: Jedes Release enthält eine `source.json`; Updates lassen sich direkt in AltStore installieren.
+
+### Geändert
+- Knopf „Dienste auswählen“ heißt jetzt „Einstellungen“ (Darstellung + Dienste).
+- Reserve-Zeitplan auf ungerade 5-Minuten-Takte; Anleitung für zuverlässigen 5-Minuten-Takt über cron-job.org.
+
 ### Behoben
 - Erreichbarkeits-Check folgt keinen Weiterleitungen mehr (z. B. zur Microsoft-Anmeldung), Fehlerursache wird genauer protokolliert.
 - GitHub Actions auf Node-24-Versionen aktualisiert.
 - Zustand wird auch bei „Re-run“ gespeichert (vorher doppelte Meldungen möglich).
 - Doppeltes Warn-Emoji in ntfy-Nachrichten entfernt.
-
-### Geändert
-- Reserve-Zeitplan auf ungerade 5-Minuten-Takte; Anleitung für zuverlässigen 5-Minuten-Takt über cron-job.org.
 
 ## [1.0.0] – 2026-11-13
 
@@ -25,5 +32,6 @@ Versionen nach [Semantic Versioning](https://semver.org/lang/de/).
 - Hintergrund-Prüfung für eigene Builds (nicht in Expo Go verfügbar).
 - IPA-Build über GitHub Actions (macOS) zum Installieren per AltStore/Sideloadly, IPA wird an Releases angehängt.
 
-[Unreleased]: https://github.com/Talados-25/Stoerungs-App/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/Talados-25/Stoerungs-App/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/Talados-25/Stoerungs-App/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Talados-25/Stoerungs-App/releases/tag/v1.0.0
