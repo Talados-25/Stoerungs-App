@@ -128,6 +128,14 @@ Mit kostenloser Apple-ID läuft die Signatur nach 7 Tagen ab. AltStore erneuert 
 wenn dein PC mit laufendem AltServer im selben WLAN ist. Ist der PC alle paar Tage an, merkst du
 davon nichts. Falls die App doch abgelaufen ist: AltStore öffnen → *Refresh All* (Daten bleiben erhalten).
 
+**Wenn AltStore AltServer oder das iPhone nicht findet**
+
+Meldet AltStore „Could not find AltServer“ oder „AltServer could not find this device“, hilft fast
+immer: AltServer neu starten, warten bis er läuft, dann den „Apple Mobile Device Service“ neu starten.
+Das erledigt `tools/windows/AltServer-neustart.bat` per Doppelklick (Admin-Abfrage mit „Ja“ bestätigen).
+Bleibt der Fehler: auf dem iPhone „Private WLAN-Adresse“ für das Heim-WLAN ausschalten und unter
+*Datenschutz & Sicherheit → Lokales Netzwerk* AltStore erlauben.
+
 Hinweise: Eine kostenlose Apple-ID erlaubt 3 solcher Apps gleichzeitig (AltStore zählt mit).
 In der installierten App läuft zusätzlich eine Hintergrund-Prüfung; wie oft, entscheidet iOS.
 Zuverlässige Warnungen kommen weiterhin über ntfy.
