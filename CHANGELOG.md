@@ -5,6 +5,15 @@ Versionen nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [1.2.0] – 2026-11-14
+
+### Hinzugefügt
+- Neues App-Symbol mit Varianten für den hellen, dunklen und getönten Home-Bildschirm (iOS 18+).
+
+### Geändert
+- Einstellungen öffnen sich über das Zahnrad oben rechts; die Knöpfe unten entfallen.
+- „Cloud-Konfig teilen“ befindet sich jetzt in den Einstellungen (Abschnitt „Cloud-Prüfer“).
+
 ## [1.1.0] – 2026-11-14
 
 ### Hinzugefügt
@@ -32,6 +41,7 @@ Versionen nach [Semantic Versioning](https://semver.org/lang/de/).
 - Hintergrund-Prüfung für eigene Builds (nicht in Expo Go verfügbar).
 - IPA-Build über GitHub Actions (macOS) zum Installieren per AltStore/Sideloadly, IPA wird an Releases angehängt.
 
-[Unreleased]: https://github.com/Talados-25/Stoerungs-App/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/Talados-25/Stoerungs-App/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/Talados-25/Stoerungs-App/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Talados-25/Stoerungs-App/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Talados-25/Stoerungs-App/releases/tag/v1.0.0

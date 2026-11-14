@@ -7,6 +7,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { isRunningInExpoGo } from 'expo';
 import Constants from 'expo-constants';
+import { SymbolView } from 'expo-symbols';
 import * as Notifications from 'expo-notifications';
 import { LEVEL_LABEL, type CheckResult, type Level, type Service } from './shared/checks';
 import {
@@ -101,7 +102,23 @@ function Main() {
     <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
       <StatusBar style={theme.dark ? 'light' : 'dark'} />
       <View style={styles.header}>
-        <Text style={styles.h1}>Störungsmelder</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.h1}>Störungsmelder</Text>
+          <Pressable
+            onPress={() => setShowPicker(true)}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Einstellungen"
+            style={({ pressed }) => [styles.gear, pressed && { opacity: 0.5 }]}
+          >
+            <SymbolView
+              name="gearshape"
+              size={26}
+              tintColor={theme.primary}
+              fallback={<Text style={[styles.h2, { color: theme.primary }]}>⚙︎</Text>}
+            />
+          </Pressable>
+        </View>
         <Text style={[styles.summary, { color: problems ? theme.level.major : theme.level.ok }]}>
           {problems ? `${problems} Dienst(e) mit Störung` : 'Keine bekannten Störungen'}
         </Text>
@@ -126,18 +143,10 @@ function Main() {
         data={visible}
         keyExtractor={(s) => s.id}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={theme.muted} />}
-        contentContainerStyle={{ padding: 16, gap: 10 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 48, gap: 10 }}
         ListEmptyComponent={<Text style={styles.muted}>Keine Dienste ausgewählt.</Text>}
         renderItem={({ item }) => <ServiceRow svc={item} res={results[item.id]} />}
       />
-
-      <View style={styles.footer}>
-        <Btn label="Einstellungen" onPress={() => setShowPicker(true)} primary />
-        <Btn
-          label="Cloud-Konfig teilen"
-          onPress={async () => Share.share({ message: await exportWorkerConfig() })}
-        />
-      </View>
 
       <Picker
         visible={showPicker}
@@ -263,6 +272,20 @@ function Picker({ visible, services, selected, onClose }: {
             : 'Für offizielle Statusseiten auf Statuspage.io-Basis (z. B. https://www.githubstatus.com).'}
         </Text>
         <Btn label="Hinzufügen" onPress={addCustom} primary />
+
+        <Text style={[styles.h2, { marginTop: 32 }]}>Cloud-Prüfer</Text>
+        <Text style={[styles.muted, { marginBottom: 8 }]}>
+          Teilt die oben ausgewählten Dienste als Text für die Datei worker/services.json auf GitHub.
+          Der Cloud-Prüfer schickt dann auch für diese Dienste Push-Nachrichten über ntfy.
+        </Text>
+        <Btn
+          label="Cloud-Konfig teilen"
+          onPress={async () => {
+            await saveSelected(sel);
+            await Share.share({ message: await exportWorkerConfig() });
+          }}
+        />
+        <View style={{ height: 40 }} />
       </ScrollView>
     </Modal>
   );
@@ -280,7 +303,9 @@ function Btn({ label, onPress, primary }: { label: string; onPress: () => void; 
 const makeStyles = (t: Theme) => StyleSheet.create({
   root: { flex: 1, backgroundColor: t.bg },
   header: { paddingHorizontal: 16, paddingTop: 8, gap: 2 },
-  h1: { fontSize: 30, fontWeight: '700', color: t.text },
+  h1: { fontSize: 30, fontWeight: '700', color: t.text, flexShrink: 1 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  gear: { padding: 4 },
   h1small: { fontSize: 24, fontWeight: '700', color: t.text },
   h2: { fontSize: 20, fontWeight: '600', color: t.text },
   summary: { fontSize: 16, fontWeight: '600' },
@@ -293,7 +318,6 @@ const makeStyles = (t: Theme) => StyleSheet.create({
   name: { fontSize: 16, fontWeight: '500', flexShrink: 1, color: t.text },
   badge: { marginLeft: 'auto', fontWeight: '600', fontSize: 13 },
   incident: { fontSize: 13, color: t.text },
-  footer: { flexDirection: 'row', gap: 10, padding: 16, paddingBottom: 32 },
   btn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', backgroundColor: t.btn },
   btnPrimary: { backgroundColor: t.primary },
   btnText: { fontWeight: '600', color: t.btnText },

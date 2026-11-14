@@ -28,7 +28,7 @@ und schickt Pushes über die kostenlose App **ntfy** (App Store).
    npx expo start --tunnel
    ```
 2. **Expo Go** aus dem App Store installieren, QR-Code mit der iPhone-Kamera scannen.
-3. Benachrichtigungen erlauben → „Einstellungen“ → Dienste auswählen.
+3. Benachrichtigungen erlauben → Zahnrad oben rechts → Dienste auswählen.
 
 ## 2. Cloud-Prüfer einrichten (Pushes auch bei geschlossener App)
 
@@ -37,7 +37,7 @@ und schickt Pushes über die kostenlose App **ntfy** (App Store).
 2. Dieses Projekt als **privates** GitHub-Repository hochladen.
 3. Im Repo: *Settings → Secrets and variables → Actions → New secret*:
    `NTFY_TOPIC` = dein Themenname.
-4. In der App „Cloud-Konfig teilen“ tippen, den Text in `worker/services.json` einfügen, committen.
+4. In der App Zahnrad oben rechts → ganz unten „Cloud-Konfig teilen“, den Text in `worker/services.json` einfügen, committen.
 5. *Actions → Störungs-Check → Run workflow* zum Testen. Danach läuft es automatisch.
 
 ### Zuverlässig alle 5 Minuten prüfen (cron-job.org)
@@ -132,6 +132,7 @@ Zuverlässige Warnungen kommen weiterhin über ntfy.
 - `shared/checks.js` – Prüf-Logik (von App **und** Cloud-Prüfer genutzt)
 - `worker/check.mjs`, `.github/workflows/stoerungs-check.yml` – Cloud-Prüfer
 - `.github/workflows/ios-ipa.yml` – baut die IPA (manuell oder bei jedem Release)
+- `scripts/make-icons.py` – erzeugt die App-Symbole (hell, dunkel, getönt)
 
 ## Versionierung
 
