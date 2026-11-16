@@ -1,0 +1,27 @@
+name: Diagnose Statusquellen
+on:
+  push:
+    branches: [claude/diag-statusquellen]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kandidaten pruefen
+        run: |
+          probe() {
+            u="$1"
+            r=$(curl -sSL -m 15 -o /tmp/body -w '%{http_code} %{url_effective}' -A 'Mozilla/5.0' "$u" 2>&1)
+            sig=$(grep -oiE 'statuspage|atlassian|instatus|betteruptime|betterstack|status\.io|uptimerobot|hund\.io|sorryapp|cachet|statuscast|openstatus|incident\.io|<title>[^<]{0,80}' /tmp/body 2>/dev/null | sort -u | tr '\n' ' ' | head -c 300)
+            echo "$u → $r | $sig"
+          }
+          json() {
+            u="$1"
+            r=$(curl -sS -m 15 -A 'Mozilla/5.0' "$u" 2>&1 | head -c 400 | tr '\n' ' ')
+            echo "JSON $u → $r"
+          }
+          for b in https://www.datev-status.de https://datev-status.de https://status.datev.de https://www.datev.de/status https://datev.statuspage.io \
+                   https://status.docuware.com https://status.docuware.cloud https://docuware.statuspage.io https://www.docuware-status.com \
+                   https://status.odav.de https://status.odav.net https://odav.statuspage.io https://www.odav.de https://www.odav.de/status; do
+            probe "$b"
+            json "$b/api/v2/summary.json"
+          done
