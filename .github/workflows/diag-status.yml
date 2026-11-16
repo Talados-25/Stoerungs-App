@@ -6,33 +6,25 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Kandidaten pruefen
+      - name: Datenquellen suchen
         shell: bash {0}
         run: |
-          probe() {
-            u="$1"
-            r=$(curl -sSL -m 15 -o /tmp/body -w '%{http_code} %{url_effective}' -A 'Mozilla/5.0' "$u" 2>&1)
-            sig=$(grep -oiE 'statuspage|atlassian|instatus|betteruptime|betterstack|status\.io|uptimerobot|hund\.io|sorryapp|cachet|statuscast|openstatus|incident\.io|<title>[^<]{0,80}' /tmp/body 2>/dev/null | sort -u | tr '\n' ' ' | head -c 300)
-            echo "PROBE $u → $r | $sig"
-          }
-          for b in https://status.docuware.com https://status.docuware.cloud https://docuware.statuspage.io https://www.docuware-status.com https://status.docuware.net https://trust.docuware.com \
-                   https://status.odav.de https://status.odav.net https://odav.statuspage.io https://www.odav.de https://www.odav.de/status https://www.odav.de/stoerungen https://status.odav.cloud; do
-            probe "$b"
-            r=$(curl -sS -m 15 -A 'Mozilla/5.0' "$b/api/v2/summary.json" 2>&1 | head -c 200 | tr '\n' ' ')
-            echo "JSON $b → $r"
+          UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140.0 Safari/537.36'
+          echo "===== DATEV bundle.js"
+          curl -sSL -m 20 -A "$UA" "https://www.datev-status.de/js/bundle.js" -o datev.js; echo "GROESSE $(wc -c < datev.js)"
+          grep -oE '"(https?:)?//[^"]{5,200}"|'"'"'(https?:)?//[^'"'"']{5,200}'"'"'|"/[a-zA-Z0-9_./-]{3,100}\.(json|xml)[^"]{0,60}"|fetch\([^)]{0,200}\)|url:[^,]{0,200}' datev.js | sort -u | head -60
+          echo "===== DocuWare Statusportal"
+          curl -sSL -m 20 -A "$UA" "https://statusportal.docuware.cloud/overview" -o dw.html; echo "GROESSE $(wc -c < dw.html)"
+          grep -oiE '(href|src)="[^"]*"' dw.html | sort -u | head -40
+          grep -oE '"(https?:)?//[^"]{5,200}"' dw.html | sort -u | head -30
+          sed -e 's/<[^>]*>/ /g' dw.html | tr -s ' \n' | head -c 1500; echo
+          for js in $(grep -oiE 'src="[^"]*\.js[^"]*"' dw.html | sed 's/src="//;s/"$//' | head -8); do
+            case "$js" in http*) u="$js";; //*) u="https:$js";; /*) u="https://statusportal.docuware.cloud$js";; *) u="https://statusportal.docuware.cloud/$js";; esac
+            echo "--- JS $u"
+            curl -sSL -m 20 -A "$UA" "$u" -o f.js
+            grep -oE '"(https?:)?//[^"]{5,200}"|"/api[^"]{0,150}"|"api/[^"]{0,150}"|fetch\([^)]{0,150}\)|baseURL:[^,]{0,150}' f.js | sort -u | head -30
           done
-      - name: DATEV-Seite analysieren
-        shell: bash {0}
-        run: |
-          curl -sSL -m 20 -A 'Mozilla/5.0' https://www.datev-status.de/ -o datev.html
-          echo "GROESSE $(wc -c < datev.html)"
-          echo "== Links auf Daten (json/xml/rss/feed/api)"
-          grep -oiE '(href|src)="[^"]*"' datev.html | grep -iE 'json|xml|rss|feed|api|\.js' | sort -u | head -40
-          grep -oiE 'https?://[^"'"'"' )]*(json|rss|feed|api)[^"'"'"' )]*' datev.html | sort -u | head -20
-          echo "== Textauszug"
-          sed -e 's/<[^>]*>/ /g' datev.html | tr -s ' \n' | head -c 2500
-          echo
-          for f in feed rss rss.xml feed.xml atom.xml index.xml data.json status.json api/status incidents.json; do
-            r=$(curl -sS -m 10 -o /tmp/f -w '%{http_code} %{content_type}' -A 'Mozilla/5.0' "https://www.datev-status.de/$f" 2>&1)
-            echo "DATEVPROBE /$f → $r | $(head -c 150 /tmp/f | tr '\n' ' ')"
+          for f in api/status api/v1/status api/overview api/components api/incidents api/services status.json overview.json; do
+            r=$(curl -sS -m 10 -o /tmp/f -w '%{http_code} %{content_type}' -A "$UA" "https://statusportal.docuware.cloud/$f" 2>&1)
+            echo "DWPROBE /$f → $r | $(head -c 200 /tmp/f | tr '\n' ' ')"
           done
