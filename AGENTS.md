@@ -43,3 +43,8 @@ Docs: https://docs.expo.dev/eas/index.md
 ## Commit-Nachrichten
 
 - Keinen `Claude-Session:`-Link in Commit-Nachrichten oder Pull-Request-Beschreibungen aufnehmen (Wunsch des Repo-Inhabers). Die `Co-Authored-By`-Zeile ist in Ordnung.
+
+## Rückmeldung an den Repo-Inhaber
+
+- Pull Requests immer selbst anlegen und den Link dazu schicken.
+- Antworten dazu kurz halten: Was ändert sich (wenige Stichpunkte), PR-Link, nötige Schritte (Merge, ggf. Release).
