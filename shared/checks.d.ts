@@ -2,9 +2,13 @@ export type Level = 'ok' | 'minor' | 'major' | 'maintenance' | 'unknown';
 export interface Service {
   id: string;
   name: string;
-  kind: 'statuspage' | 'http' | 'google' | 'slack' | 'rss' | 'm365graph';
+  kind: 'statuspage' | 'http' | 'google' | 'slack' | 'rss' | 'm365graph' | 'datev' | 'docuware';
   url?: string;
   product?: string;
+  /** DocuWare: Region (emea, us, …) */
+  region?: string;
+  /** DATEV: nur Meldungen zu Diensten, deren Name einen dieser Begriffe enthält */
+  filter?: string[];
   workerOnly?: boolean;
   custom?: boolean;
 }
@@ -16,8 +20,8 @@ export interface CheckResult {
   message: string;
   incidents: string[];
 }
-export type ServiceState = Record<string, { level: Level; pending?: Level; streak?: number }>;
-export interface Change { result: CheckResult; from: Level; to: Level }
+export type ServiceState = Record<string, { level: Level; pending?: Level; streak?: number; seen?: string[] }>;
+export interface Change { result: CheckResult; from: Level; to: Level; fresh?: string[] }
 export const CATALOG: Service[];
 export const LEVEL_LABEL: Record<Level, string>;
 export function confirmRuns(svc: Service): number;
