@@ -6,18 +6,15 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Daten ansehen
+      - name: DocuWare tiefer
         shell: bash {0}
         run: |
           UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140.0 Safari/537.36'
-          for e in incidents "incidents?lastDays=3" maintenances globalmessages incidents-external-systems service-tree-lean; do
-            echo "===== DATEV $e"
-            curl -sS -m 20 -A "$UA" -H 'Origin: https://www.datev-status.de' -w '\nHTTP %{http_code} %{content_type}\n' "https://api.datev-status.de/v1/$e" | head -c 2500
-            echo
-          done
-          echo "===== DocuWare JS"
-          for js in main-FTWO4WFG.js chunk-R7GQ3HEB.js; do
-            curl -sSL -m 20 -A "$UA" "https://statusportal.docuware.cloud/$js" -o f.js
-            echo "--- $js $(wc -c < f.js)"
-            grep -oE '.{0,60}(api|Api|API|http|\.json|environment|endpoint|baseUrl|apiUrl)[^;]{0,120}' f.js | grep -viE 'w3\.org|angular\.(dev|io)|github\.com|mozilla' | sort -u | head -50
+          B=https://statusportal.docuware.cloud
+          curl -sSL -m 20 -A "$UA" "$B/main-FTWO4WFG.js" -o main.js
+          echo "== main.js"; cat main.js; echo
+          for c in $(grep -oE 'chunk-[A-Z0-9]+\.js' main.js | sort -u); do
+            curl -sSL -m 20 -A "$UA" "$B/$c" -o c.js
+            echo "== $c $(wc -c < c.js)"
+            grep -oE '"[^"]{0,20}(https?://|/api|api/|\.json|/v1/|/v2/)[^"]{0,150}"|`[^`]{0,20}(https?://|/api|api/|/v1/)[^`]{0,150}`' c.js | grep -viE 'w3\.org|angular\.(dev|io)|github\.com|mozilla' | sort -u | head -30
           done
