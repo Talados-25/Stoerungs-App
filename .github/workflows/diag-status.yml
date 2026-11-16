@@ -6,15 +6,19 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: DocuWare tiefer
+      - name: DocuWare Basisadresse
         shell: bash {0}
         run: |
           UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140.0 Safari/537.36'
           B=https://statusportal.docuware.cloud
-          curl -sSL -m 20 -A "$UA" "$B/main-FTWO4WFG.js" -o main.js
-          echo "== main.js"; cat main.js; echo
-          for c in $(grep -oE 'chunk-[A-Z0-9]+\.js' main.js | sort -u); do
-            curl -sSL -m 20 -A "$UA" "$B/$c" -o c.js
-            echo "== $c $(wc -c < c.js)"
-            grep -oE '"[^"]{0,20}(https?://|/api|api/|\.json|/v1/|/v2/)[^"]{0,150}"|`[^`]{0,20}(https?://|/api|api/|/v1/)[^`]{0,150}`' c.js | grep -viE 'w3\.org|angular\.(dev|io)|github\.com|mozilla' | sort -u | head -30
-          done
+          : > all.js
+          for c in chunk-IA4ANFFS.js chunk-5RXQKUI6.js chunk-R7GQ3HEB.js chunk-52X5Q5U7.js chunk-ZOAUGUWQ.js; do curl -sSL -m 20 -A "$UA" "$B/$c" >> all.js; echo >> all.js; done
+          for c in $(grep -oE 'chunk-[A-Z0-9]+\.js' all.js | sort -u); do curl -sSL -m 20 -A "$UA" "$B/$c" >> all.js; echo >> all.js; done
+          echo "== apiBaseUrl"
+          grep -oE '.{0,40}apiBaseUrl.{0,120}' all.js | sort -u | head -10
+          base=$(grep -oE 'apiBaseUrl:"[^"]+"' all.js | head -1 | sed 's/apiBaseUrl:"//;s/"$//')
+          echo "BASE=$base"
+          if [ -n "$base" ]; then
+            echo "== RegionalStatus/all"
+            curl -sS -m 20 -A "$UA" -H "Origin: $B" -w '\nHTTP %{http_code} %{content_type}\n' "$base/api/v2025-06-13/RegionalStatus/all" | head -c 4000
+          fi
