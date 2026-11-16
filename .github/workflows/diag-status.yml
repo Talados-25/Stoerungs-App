@@ -6,13 +6,16 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: DocuWare Daten
-        shell: bash {0}
+      - uses: actions/checkout@v7
+        with: { ref: claude/v1.4.0-datev-docuware }
+      - uses: actions/setup-node@v7
+        with: { node-version: 22 }
+      - name: Neue Pruefungen gegen echte Schnittstellen
         run: |
-          UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140.0 Safari/537.36'
-          B=https://statusportal.docuware.cloud
-          curl -sS -m 20 -A "$UA" -w '\nHTTP %{http_code} %{content_type}\n' "$B/api/v2025-06-13/RegionalStatus/all" | head -c 6000
-          echo
-          echo "== Statuswerte im Skript"
-          curl -sSL -m 20 -A "$UA" "$B/chunk-IA4ANFFS.js" -o o.js
-          grep -oE '.{0,80}(status|Status|state|State)[^;]{0,160}' o.js | grep -iE 'operational|degrad|outage|maint|incident|available|disrupt|healthy|warning|critical' | sort -u | head -25
+          node --input-type=module -e "
+          import { CATALOG, checkService } from './shared/checks.js';
+          for (const id of ['datev','docuware','odav']) {
+            const r = await checkService(CATALOG.find(c => c.id === id));
+            console.log('ERGEBNIS', r.level.padEnd(11), r.name, '–', r.message);
+            for (const i of r.incidents) console.log('    •', i);
+          }"
