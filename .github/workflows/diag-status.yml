@@ -6,25 +6,18 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Datenquellen suchen
+      - name: Daten ansehen
         shell: bash {0}
         run: |
           UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140.0 Safari/537.36'
-          echo "===== DATEV bundle.js"
-          curl -sSL -m 20 -A "$UA" "https://www.datev-status.de/js/bundle.js" -o datev.js; echo "GROESSE $(wc -c < datev.js)"
-          grep -oE '"(https?:)?//[^"]{5,200}"|'"'"'(https?:)?//[^'"'"']{5,200}'"'"'|"/[a-zA-Z0-9_./-]{3,100}\.(json|xml)[^"]{0,60}"|fetch\([^)]{0,200}\)|url:[^,]{0,200}' datev.js | sort -u | head -60
-          echo "===== DocuWare Statusportal"
-          curl -sSL -m 20 -A "$UA" "https://statusportal.docuware.cloud/overview" -o dw.html; echo "GROESSE $(wc -c < dw.html)"
-          grep -oiE '(href|src)="[^"]*"' dw.html | sort -u | head -40
-          grep -oE '"(https?:)?//[^"]{5,200}"' dw.html | sort -u | head -30
-          sed -e 's/<[^>]*>/ /g' dw.html | tr -s ' \n' | head -c 1500; echo
-          for js in $(grep -oiE 'src="[^"]*\.js[^"]*"' dw.html | sed 's/src="//;s/"$//' | head -8); do
-            case "$js" in http*) u="$js";; //*) u="https:$js";; /*) u="https://statusportal.docuware.cloud$js";; *) u="https://statusportal.docuware.cloud/$js";; esac
-            echo "--- JS $u"
-            curl -sSL -m 20 -A "$UA" "$u" -o f.js
-            grep -oE '"(https?:)?//[^"]{5,200}"|"/api[^"]{0,150}"|"api/[^"]{0,150}"|fetch\([^)]{0,150}\)|baseURL:[^,]{0,150}' f.js | sort -u | head -30
+          for e in incidents "incidents?lastDays=3" maintenances globalmessages incidents-external-systems service-tree-lean; do
+            echo "===== DATEV $e"
+            curl -sS -m 20 -A "$UA" -H 'Origin: https://www.datev-status.de' -w '\nHTTP %{http_code} %{content_type}\n' "https://api.datev-status.de/v1/$e" | head -c 2500
+            echo
           done
-          for f in api/status api/v1/status api/overview api/components api/incidents api/services status.json overview.json; do
-            r=$(curl -sS -m 10 -o /tmp/f -w '%{http_code} %{content_type}' -A "$UA" "https://statusportal.docuware.cloud/$f" 2>&1)
-            echo "DWPROBE /$f → $r | $(head -c 200 /tmp/f | tr '\n' ' ')"
+          echo "===== DocuWare JS"
+          for js in main-FTWO4WFG.js chunk-R7GQ3HEB.js; do
+            curl -sSL -m 20 -A "$UA" "https://statusportal.docuware.cloud/$js" -o f.js
+            echo "--- $js $(wc -c < f.js)"
+            grep -oE '.{0,60}(api|Api|API|http|\.json|environment|endpoint|baseUrl|apiUrl)[^;]{0,120}' f.js | grep -viE 'w3\.org|angular\.(dev|io)|github\.com|mozilla' | sort -u | head -50
           done
