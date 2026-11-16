@@ -5,7 +5,17 @@ Versionen nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [1.4.0] – 2026-11-16
+
+### Hinzugefügt
+- DATEV-Rechenzentrum über die offizielle Status-Schnittstelle (Störungen und laufende Wartungen).
+- DocuWare Cloud (Region Europa) über das offizielle Statusportal.
+- ODAV als Erreichbarkeits-Check der Website (keine öffentliche Statusseite vorhanden).
+- Benachrichtigung „neue Meldung“, wenn bei einem bereits gestörten Dienst eine weitere Störung hinzukommt.
+
 ### Geändert
+- Wechsel von Störung zu laufender Wartung wird als „Störung beendet, Wartung läuft“ gemeldet statt „wieder OK“.
+- Cloud-Prüfer überwacht zusätzlich DATEV, DocuWare und ODAV.
 - Reserve-Zeitplan des Cloud-Prüfers auf einmal pro Stunde reduziert; den 5-Minuten-Takt übernimmt cron-job.org.
 
 ## [1.3.0] – 2026-11-14
@@ -55,7 +65,8 @@ Versionen nach [Semantic Versioning](https://semver.org/lang/de/).
 - Hintergrund-Prüfung für eigene Builds (nicht in Expo Go verfügbar).
 - IPA-Build über GitHub Actions (macOS) zum Installieren per AltStore/Sideloadly, IPA wird an Releases angehängt.
 
-[Unreleased]: https://github.com/Talados-25/Stoerungs-App/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/Talados-25/Stoerungs-App/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/Talados-25/Stoerungs-App/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/Talados-25/Stoerungs-App/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Talados-25/Stoerungs-App/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Talados-25/Stoerungs-App/compare/v1.0.0...v1.1.0

@@ -26,6 +26,13 @@ export const CATALOG = [
   sp('notion', 'Notion', 'https://www.notion-status.com'),
   sp('claude', 'Claude / Anthropic', 'https://status.anthropic.com'),
   { id: 'slack', name: 'Slack', kind: 'slack', url: 'https://slack-status.com/api/v2.0.0/current' },
+  // Steuer-/Kanzlei-Umfeld
+  { id: 'datev', name: 'DATEV (Rechenzentrum)', kind: 'datev', url: 'https://api.datev-status.de/v1' },
+  {
+    id: 'docuware', name: 'DocuWare Cloud (Europa)', kind: 'docuware', region: 'emea',
+    url: 'https://statusportal.docuware.cloud/api/v2025-06-13/RegionalStatus/all',
+  },
+  http('odav', 'ODAV Website Erreichbarkeit', 'https://www.odav.de/'),
   // Reine Erreichbarkeit (keine offizielle Status-API)
   http('netflix', 'Netflix Erreichbarkeit', 'https://www.netflix.com/'),
   http('spotify', 'Spotify Erreichbarkeit', 'https://open.spotify.com/'),
@@ -134,6 +141,58 @@ const checkers = {
     return { level: 'ok', message: `Erreichbar (HTTP ${r.status}, ${ms} ms)`, incidents: [] };
   },
 
+  // DATEV-Rechenzentrum: offizielle Status-Schnittstelle von datev-status.de
+  async datev(svc, opts) {
+    const base = svc.url.replace(/\/$/, '');
+    const [incidents, maintenances] = await Promise.all([
+      getJson(`${base}/incidents`, opts),
+      getJson(`${base}/maintenances`, opts).catch(() => []),
+    ]);
+    const now = Date.now();
+    const match = (name) => !svc.filter?.length || svc.filter.some((f) => name?.toLowerCase().includes(f.toLowerCase()));
+    const active = incidents.filter((i) =>
+      i.currentState !== 'AVAILABLE' && (!i.endDate || Date.parse(i.endDate) > now) && match(i.serviceInfoDto?.name));
+    const STATE = { LIMITED: 'eingeschränkt', NOT_AVAILABLE: 'nicht verfügbar', UNAVAILABLE: 'nicht verfügbar' };
+    if (active.length) {
+      const major = active.some((i) => /NOT_AVAILABLE|UNAVAILABLE|OUTAGE|FAILURE|DOWN/i.test(i.currentState ?? ''));
+      const first = active[0].externalInfo?.split('\n')[0]?.trim();
+      return {
+        level: major ? 'major' : 'minor',
+        message: active.length === 1 && first ? first.slice(0, 200)
+          : `${active.length} aktive Meldung${active.length === 1 ? '' : 'en'}`,
+        incidents: active.map((i) => `${i.serviceInfoDto?.name ?? 'DATEV'}: ${STATE[i.currentState] ?? i.currentState}`),
+      };
+    }
+    const maint = maintenances.filter((m) =>
+      Date.parse(m.startDate) <= now && Date.parse(m.endDate) > now &&
+      (m.affectedServicesInfo ?? []).some((a) => match(a.name)));
+    if (maint.length) {
+      return {
+        level: 'maintenance',
+        message: 'Wartung läuft',
+        incidents: maint.flatMap((m) => (m.affectedServicesInfo ?? []).map((a) => `${a.name}: Wartung`)),
+      };
+    }
+    return { level: 'ok', message: 'Keine Störungen', incidents: [] };
+  },
+
+  // DocuWare Cloud: Status je Funktion (Login, Suche, Workflow …) für eine Region
+  async docuware(svc, opts) {
+    const data = await getJson(svc.url, opts);
+    const items = data?.[svc.region ?? 'emea'];
+    if (!Array.isArray(items)) throw new Error(`Region ${svc.region} nicht gefunden`);
+    const bad = items.filter((i) => (i.status ?? '').toLowerCase() !== 'operational');
+    if (!bad.length) return { level: 'ok', message: `Alle ${items.length} Funktionen in Betrieb`, incidents: [] };
+    const st = (i) => (i.status ?? '').toLowerCase();
+    const level = bad.some((i) => /outage|down|unavailable/.test(st(i))) ? 'major'
+      : bad.every((i) => /maint/.test(st(i))) ? 'maintenance' : 'minor';
+    return {
+      level,
+      message: `${bad.length} von ${items.length} Funktionen betroffen`,
+      incidents: bad.map((i) => `${i.component?.text ?? i.component?.value ?? 'DocuWare'}: ${i.status}`),
+    };
+  },
+
   // Nur im Worker: offizielle M365 Service Health deines Tenants (braucht App-Registrierung).
   async m365graph(svc, opts) {
     const env = opts.env ?? {};
@@ -176,8 +235,10 @@ const BAD = new Set(['minor', 'major']);
 
 /**
  * Vergleicht neue Ergebnisse mit gespeichertem Zustand.
- * state: { [id]: { level, pending, streak } }  → gibt { state, changes } zurück.
- * 'unknown' (Abruf kaputt) ändert nichts, damit es keinen Fehlalarm gibt.
+ * state: { [id]: { level, pending, streak, seen } }  → gibt { state, changes } zurück.
+ * - 'unknown' (Abruf kaputt) ändert nichts, damit es keinen Fehlalarm gibt.
+ * - Bleibt ein Dienst gestört, aber es kommen neue Einzelmeldungen dazu,
+ *   gibt es eine eigene Änderung mit `fresh` (z. B. neue DATEV-Störung).
  */
 export function diffResults(services, results, prevState = {}) {
   const state = { ...prevState };
@@ -186,25 +247,37 @@ export function diffResults(services, results, prevState = {}) {
     const svc = services.find((s) => s.id === res.id);
     const prev = state[res.id] ?? { level: 'ok', streak: 0 };
     if (res.level === 'unknown') continue;
+    const seen = res.incidents.slice(0, 50);
     if (res.level === prev.level) {
-      state[res.id] = { level: prev.level, streak: 0 };
+      // Vor dem ersten Lauf mit dieser Logik gibt es noch kein `seen` → nichts melden.
+      const fresh = BAD.has(res.level) && Array.isArray(prev.seen)
+        ? res.incidents.filter((i) => !prev.seen.includes(i))
+        : [];
+      state[res.id] = { level: prev.level, streak: 0, seen };
+      if (fresh.length) changes.push({ result: res, from: prev.level, to: res.level, fresh });
       continue;
     }
     const streak = prev.pending === res.level ? (prev.streak ?? 0) + 1 : 1;
     if (streak < confirmRuns(svc)) {
-      state[res.id] = { level: prev.level, pending: res.level, streak };
+      state[res.id] = { level: prev.level, pending: res.level, streak, seen: prev.seen };
       continue;
     }
-    state[res.id] = { level: res.level, streak: 0 };
+    state[res.id] = { level: res.level, streak: 0, seen };
     // Nur melden, wenn Störung beginnt, sich ändert oder endet (Wartung ↔ OK leise).
     if (BAD.has(res.level) || BAD.has(prev.level)) changes.push({ result: res, from: prev.level, to: res.level });
   }
   return { state, changes };
 }
 
-export function formatChange({ result, from, to }) {
+export function formatChange({ result, from, to, fresh }) {
+  if (fresh?.length) {
+    const title = `⚠️ ${result.name}: neue Meldung`;
+    return { title, body: fresh.slice(0, 3).join('\n'), recovered: false, from, to };
+  }
   const recovered = !BAD.has(to);
-  const title = recovered ? `✅ ${result.name}: wieder OK` : `⚠️ ${result.name}: ${LEVEL_LABEL[to]}`;
+  const title = !recovered ? `⚠️ ${result.name}: ${LEVEL_LABEL[to]}`
+    : to === 'maintenance' ? `🔧 ${result.name}: Störung beendet, Wartung läuft`
+    : `✅ ${result.name}: wieder OK`;
   const body = [result.message, ...result.incidents.slice(0, 3)].filter(Boolean).join('\n');
   return { title, body, recovered, from, to };
 }

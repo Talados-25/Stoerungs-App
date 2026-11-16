@@ -86,6 +86,12 @@ GitHub schickt vorher eine E-Mail; dann neues Token erstellen und bei cron-job.o
   M365-Tenants bist: App-Registrierung in Entra ID mit Anwendungsberechtigung
   `ServiceHealth.Read.All` (Admin-Zustimmung erteilen), dann Secrets `M365_TENANT_ID`,
   `M365_CLIENT_ID`, `M365_CLIENT_SECRET` setzen und `"m365-tenant"` in `worker/services.json`.
+- **DATEV** (offizielle Status-Schnittstelle `api.datev-status.de`): aktive Störungen und laufende
+  Wartungen des DATEV-Rechenzentrums. Kommt bei einer bestehenden Störung eine neue Meldung hinzu,
+  gibt es eine eigene Benachrichtigung „neue Meldung“.
+- **DocuWare Cloud** (offizielles Statusportal `statusportal.docuware.cloud`): Status von Login, Suche,
+  Workflow usw. für die Region Europa (EMEA).
+- **ODAV**: keine öffentliche Statusseite – nur Erreichbarkeit der Website `www.odav.de`.
 - **Eigene Dienste**: in der App per URL hinzufügen (Erreichbarkeit oder Statuspage.io-Seite).
 
 ## Als eigene App installieren (ohne Expo Go, ohne Mac)
