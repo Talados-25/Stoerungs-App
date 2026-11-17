@@ -5,6 +5,17 @@ Versionen nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [1.5.0] – 2026-11-17
+
+### Hinzugefügt
+- Detail-Fenster beim Antippen eines Dienstes: aktueller Status mit „Live-Puls“, 30-Tage-Streifen (Tipp auf einen Balken zeigt den Tag), Zähler „seit X Tagen störungsfrei“, Verlauf mit Beginn/Ende/Dauer und Knopf zur Statusseite.
+- Offizieller Störungsverlauf für Statuspage-Dienste (GitHub, Discord, Cloudflare, Claude …), Google Workspace, Slack und DATEV (letzte 3 Tage); übrige Dienste: von der App beobachteter Verlauf.
+- Dienste ohne eigene Statusseite (YouTube, Spotify, WhatsApp …) verlinken auf Allestörungen.
+- Zahl der gestörten Dienste am App-Symbol (abschaltbar in den Einstellungen).
+
+### Geändert
+- Dienste mit Störung stehen oben in der Liste (Störung → Teilstörung → Wartung → unbekannt → OK); innerhalb einer Stufe bleibt die gewählte Reihenfolge erhalten.
+
 ## [1.4.0] – 2026-11-16
 
 ### Hinzugefügt
@@ -65,7 +76,8 @@ Versionen nach [Semantic Versioning](https://semver.org/lang/de/).
 - Hintergrund-Prüfung für eigene Builds (nicht in Expo Go verfügbar).
 - IPA-Build über GitHub Actions (macOS) zum Installieren per AltStore/Sideloadly, IPA wird an Releases angehängt.
 
-[Unreleased]: https://github.com/Talados-25/Stoerungs-App/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/Talados-25/Stoerungs-App/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/Talados-25/Stoerungs-App/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/Talados-25/Stoerungs-App/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/Talados-25/Stoerungs-App/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Talados-25/Stoerungs-App/compare/v1.1.0...v1.2.0

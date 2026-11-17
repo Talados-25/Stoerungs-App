@@ -3,13 +3,13 @@
     "name": "Stoerungsmelder",
     "slug": "stoerungs-app",
     "scheme": "stoerungsmelder",
-    "version": "1.4.0",
+    "version": "1.5.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": false,
-      "buildNumber": "5",
+      "buildNumber": "6",
       "bundleIdentifier": "com.stoerungsmelder.app",
       "infoPlist": {
         "CFBundleDisplayName": "Störungsmelder"

@@ -92,6 +92,9 @@ GitHub schickt vorher eine E-Mail; dann neues Token erstellen und bei cron-job.o
 - **DocuWare Cloud** (offizielles Statusportal `statusportal.docuware.cloud`): Status von Login, Suche,
   Workflow usw. für die Region Europa (EMEA).
 - **ODAV**: keine öffentliche Statusseite – nur Erreichbarkeit der Website `www.odav.de`.
+- **Verlauf**: Ein Tipp auf einen Dienst zeigt Verlauf, 30-Tage-Streifen und einen Knopf zur Statusseite.
+  Offizieller Verlauf bei Statuspage-Diensten, Google Workspace, Slack und DATEV (nur 3 Tage);
+  sonst zeigt die App, was sie selbst beobachtet hat.
 - **Eigene Dienste**: in der App per URL hinzufügen (Erreichbarkeit oder Statuspage.io-Seite).
 
 ## Als eigene App installieren (ohne Expo Go, ohne Mac)
