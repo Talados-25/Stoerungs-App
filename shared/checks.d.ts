@@ -29,3 +29,9 @@ export function resolveServices(entries: (string | Service)[]): Service[];
 export function checkService(svc: Service, opts?: { fetchImpl?: typeof fetch; env?: Record<string, string | undefined> }): Promise<CheckResult>;
 export function diffResults(services: Service[], results: CheckResult[], prevState?: ServiceState): { state: ServiceState; changes: Change[] };
 export function formatChange(c: Change): { title: string; body: string; recovered: boolean; from: Level; to: Level };
+
+export interface HistoryEntry { title: string; start: string; end: string | null; level: Level }
+export function statusPageUrl(svc: Service): string | null;
+export function fetchHistory(svc: Service, opts?: { fetchImpl?: typeof fetch }): Promise<{ entries: HistoryEntry[]; coversDays: number | null } | null>;
+export function dailyBars(history: HistoryEntry[], opts?: { days?: number; now?: number; since?: string | null }): (Level | null)[];
+export function daysWithoutIncident(history: HistoryEntry[], now?: number): number | null;

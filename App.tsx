@@ -11,10 +11,11 @@ import { SymbolView } from 'expo-symbols';
 import * as Notifications from 'expo-notifications';
 import { LEVEL_LABEL, type CheckResult, type Level, type Service } from './shared/checks';
 import {
-  allServices, exportWorkerConfig, loadAppNotify, loadBackgroundStats, loadCustom, loadResults,
+  allServices, exportWorkerConfig, loadAppNotify, loadBackgroundStats, loadBadge, loadCustom, loadResults, saveBadge,
   loadSelected, runChecks, saveAppNotify, saveCustom, saveSelected, type BackgroundStats,
 } from './src/monitor';
 import { registerBackgroundCheck } from './src/background';
+import { ServiceDetail } from './src/ServiceDetail';
 import { THEME_LABEL, ThemeContext, useTheme, useThemeState, type Theme, type ThemePref } from './src/theme';
 
 const POLL_MS = 2 * 60 * 1000; // solange die App offen ist
@@ -24,6 +25,10 @@ Notifications.setNotificationHandler({
     shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false,
   }),
 });
+
+/** Reihenfolge in der Liste: Störung, Teilstörung, Wartung, unbekannt, OK, nur Cloud-Prüfer. */
+const RANK: Record<Level, number> = { major: 0, minor: 1, maintenance: 2, unknown: 3, ok: 4 };
+const sortRank = (svc: Service, level?: Level) => (svc.workerOnly ? 5 : RANK[level ?? 'unknown']);
 
 export default function App() {
   const themeState = useThemeState();
@@ -51,6 +56,7 @@ function Main() {
   const [lastRun, setLastRun] = useState<Date | null>(null);
   const [showPicker, setShowPicker] = useState(false);
   const [bgActive, setBgActive] = useState(false);
+  const [detail, setDetail] = useState<Service | null>(null);
   const running = useRef(false);
 
   const refresh = useCallback(async () => {
@@ -75,7 +81,8 @@ function Main() {
   useEffect(() => {
     (async () => {
       // Nur nachfragen, wenn die App selbst benachrichtigen soll (Standard: aus, ntfy übernimmt)
-      if (await loadAppNotify()) await Notifications.requestPermissionsAsync();
+      // Mitteilungs-Erlaubnis braucht iOS für eigene Meldungen und für die Zahl am App-Symbol
+      if ((await loadAppNotify()) || (await loadBadge())) await Notifications.requestPermissionsAsync();
       await reloadConfig();
       setResults(await loadResults());
       setBgActive(await registerBackgroundCheck());
@@ -96,7 +103,13 @@ function Main() {
     return () => { clearInterval(timer); sub.remove(); };
   }, [refresh]);
 
-  const visible = selected.map((id) => services.find((s) => s.id === id)).filter((s): s is Service => !!s);
+  // Gestörte Dienste nach oben; innerhalb einer Stufe bleibt die eigene Reihenfolge erhalten.
+  const visible = selected
+    .map((id) => services.find((s) => s.id === id))
+    .filter((s): s is Service => !!s)
+    .map((s, i) => ({ s, i, r: sortRank(s, results[s.id]?.level) }))
+    .sort((a, b) => a.r - b.r || a.i - b.i)
+    .map((x) => x.s);
   const problems = visible.filter((s) => ['minor', 'major'].includes(results[s.id]?.level ?? '')).length;
 
   return (
@@ -146,8 +159,12 @@ function Main() {
         refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={theme.muted} />}
         contentContainerStyle={{ padding: 16, paddingBottom: 48, gap: 10 }}
         ListEmptyComponent={<Text style={styles.muted}>Keine Dienste ausgewählt.</Text>}
-        renderItem={({ item }) => <ServiceRow svc={item} res={results[item.id]} />}
+        renderItem={({ item }) => (
+          <ServiceRow svc={item} res={results[item.id]} onPress={() => setDetail(item)} />
+        )}
       />
+
+      <ServiceDetail svc={detail} result={detail ? results[detail.id] : undefined} onClose={() => setDetail(null)} />
 
       <Picker
         visible={showPicker}
@@ -163,12 +180,17 @@ function Main() {
   );
 }
 
-function ServiceRow({ svc, res }: { svc: Service; res?: CheckResult }) {
+function ServiceRow({ svc, res, onPress }: { svc: Service; res?: CheckResult; onPress: () => void }) {
   const { theme } = useTheme();
   const styles = useStyles();
   const level: Level = svc.workerOnly ? 'unknown' : res?.level ?? 'unknown';
   return (
-    <View style={styles.card}>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityHint="Zeigt Verlauf und Statusseite"
+      style={({ pressed }) => [styles.card, pressed && { opacity: 0.7 }]}
+    >
       <View style={styles.row}>
         <View style={[styles.dot, { backgroundColor: theme.level[level] }]} />
         <Text style={styles.name} numberOfLines={1}>{svc.name}</Text>
@@ -180,7 +202,7 @@ function ServiceRow({ svc, res }: { svc: Service; res?: CheckResult }) {
       {res?.incidents.slice(0, 5).map((t, i) => (
         <Text key={i} style={styles.incident}>• {t}</Text>
       ))}
-    </View>
+    </Pressable>
   );
 }
 
@@ -195,6 +217,7 @@ function Picker({ visible, services, selected, onClose }: {
   const [kind, setKind] = useState<'statuspage' | 'http'>('http');
   const [list, setList] = useState(services);
   const [appNotify, setAppNotify] = useState(false);
+  const [badge, setBadge] = useState(true);
   const [bgStats, setBgStats] = useState<BackgroundStats | null>(null);
 
   useEffect(() => {
@@ -202,6 +225,7 @@ function Picker({ visible, services, selected, onClose }: {
     setSel(selected);
     setList(services);
     loadAppNotify().then(setAppNotify);
+    loadBadge().then(setBadge);
     loadBackgroundStats().then(setBgStats);
   }, [visible, selected, services]);
 
@@ -218,6 +242,13 @@ function Picker({ visible, services, selected, onClose }: {
     }
     setAppNotify(on);
     await saveAppNotify(on);
+  };
+
+  const toggleBadge = async (on: boolean) => {
+    if (on) await Notifications.requestPermissionsAsync();
+    setBadge(on);
+    await saveBadge(on);
+    if (!on) await Notifications.setBadgeCountAsync(0).catch(() => {});
   };
 
   const fmt = (iso: string) =>
@@ -273,6 +304,13 @@ function Picker({ visible, services, selected, onClose }: {
             </Text>
           </View>
           <Switch value={appNotify} onValueChange={toggleAppNotify} />
+        </View>
+        <View style={styles.pickRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.name}>Zahl am App-Symbol</Text>
+            <Text style={styles.muted}>Zeigt, wie viele Dienste gerade gestört sind.</Text>
+          </View>
+          <Switch value={badge} onValueChange={toggleBadge} />
         </View>
         <Text style={[styles.muted, { marginTop: 8, marginBottom: 20 }]}>
           Hintergrund-Prüfung durch iOS:{' '}

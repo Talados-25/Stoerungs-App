@@ -219,6 +219,149 @@ const checkers = {
   },
 };
 
+// ───────────────────────── Statusseiten & Verlauf ─────────────────────────
+
+/** Menschenlesbare Statusseite je Dienst (für den Knopf „Statusseite öffnen“). */
+const STATUS_PAGES = {
+  'm365-outlook': 'https://status.cloud.microsoft/',
+  'm365-teams': 'https://status.cloud.microsoft/',
+  'm365-tenant': 'https://admin.microsoft.com/Adminportal/Home#/servicehealth',
+  azure: 'https://azure.status.microsoft/de-de/status',
+  'google-workspace': 'https://www.google.com/appsstatus/dashboard/',
+  slack: 'https://slack-status.com/',
+  datev: 'https://www.datev-status.de/',
+  docuware: 'https://status.docuware.cloud/',
+  // Ohne offizielle Statusseite: Nutzer-Meldungen bei Allestörungen (allestörungen.de)
+  youtube: 'https://xn--allestrungen-9ib.de/stoerung/youtube/',
+  netflix: 'https://xn--allestrungen-9ib.de/stoerung/netflix/',
+  spotify: 'https://xn--allestrungen-9ib.de/stoerung/spotify/',
+  whatsapp: 'https://xn--allestrungen-9ib.de/stoerung/whatsapp/',
+  instagram: 'https://xn--allestrungen-9ib.de/stoerung/instagram/',
+  odav: 'https://www.odav.de/',
+};
+
+export function statusPageUrl(svc) {
+  if (STATUS_PAGES[svc.id]) return STATUS_PAGES[svc.id];
+  if (svc.kind === 'statuspage') return svc.url;
+  return svc.url ?? null;
+}
+
+const impactLevel = (impact) =>
+  impact === 'critical' || impact === 'major' ? 'major' : impact === 'maintenance' ? 'maintenance' : 'minor';
+
+/**
+ * Offizieller Störungsverlauf des Anbieters (sofern vorhanden), neueste zuerst.
+ * Eintrag: { title, start, end (ISO oder null = läuft), level }.
+ * Gibt null zurück, wenn der Anbieter keinen Verlauf anbietet.
+ */
+const historyFetchers = {
+  async statuspage(svc, opts) {
+    const d = await getJson(svc.url.replace(/\/$/, '') + '/api/v2/incidents.json', opts);
+    return (d.incidents ?? []).map((i) => ({
+      title: i.name,
+      start: i.started_at ?? i.created_at,
+      end: i.resolved_at ?? (i.status === 'resolved' || i.status === 'postmortem' ? i.updated_at : null),
+      level: impactLevel(i.impact),
+    }));
+  },
+  async google(svc, opts) {
+    const list = await getJson(svc.url, opts);
+    return list
+      .filter((i) => !svc.product ||
+        (i.affected_products ?? []).some((p) => p.title?.toLowerCase().includes(svc.product.toLowerCase())))
+      .map((i) => ({
+        title: `${i.service_name}: ${googleTitle(i.external_desc)}`.replace(/: $/, ''),
+        start: i.begin,
+        end: i.end ?? null,
+        level: i.status_impact === 'SERVICE_OUTAGE' ? 'major' : 'minor',
+      }));
+  },
+  async slack(svc, opts) {
+    const list = await getJson(svc.url.replace(/current$/, 'history'), opts);
+    return (Array.isArray(list) ? list : []).map((i) => ({
+      title: i.title,
+      start: i.date_created,
+      end: i.status === 'resolved' || i.status === 'completed' ? i.date_updated : null,
+      level: i.type === 'outage' ? 'major' : i.type === 'notice' ? 'maintenance' : 'minor',
+    }));
+  },
+  async datev(svc, opts) {
+    // DATEV liefert den Verlauf nur für die letzten 3 Tage (Schnittstellen-Grenze) –
+    // länger laufende Störungen kommen zusätzlich aus der Liste der aktuellen Meldungen.
+    const base = svc.url.replace(/\/$/, '');
+    const [recent, current] = await Promise.all([
+      getJson(`${base}/incidents?lastDays=3`, opts),
+      getJson(`${base}/incidents`, opts).catch(() => []),
+    ]);
+    const byId = new Map([...current, ...recent].map((i) => [i.id ?? `${i.serviceInfoDto?.name}|${i.startDate}`, i]));
+    return [...byId.values()].map((i) => ({
+      title: i.serviceInfoDto?.name ?? 'DATEV',
+      start: i.startDate,
+      end: i.endDate ?? null,
+      level: /NOT_AVAILABLE|UNAVAILABLE|OUTAGE|FAILURE|DOWN/i.test(i.worstState ?? '') ? 'major' : 'minor',
+    }));
+  },
+};
+
+/** Wie viele Tage der offizielle Verlauf höchstens abdeckt (sonst: so weit er reicht). */
+const HISTORY_DAYS = { datev: 3 };
+
+/** Erste inhaltliche Zeile aus Googles Markdown-Text („**Summary:**\nText …“). */
+function googleTitle(desc = '') {
+  return desc.split('\n').map((l) => l.trim())
+    .find((l) => l && !/^\*\*[^*]+:\*\*$/.test(l))?.replace(/\*\*/g, '').slice(0, 140) ?? '';
+}
+
+/**
+ * Offizieller Verlauf: { entries, coversDays } – coversDays = null heißt „unbegrenzt/so weit geliefert“.
+ * null, wenn der Anbieter keinen Verlauf anbietet.
+ */
+export async function fetchHistory(svc, opts = {}) {
+  const fn = historyFetchers[svc.kind];
+  if (!fn) return null;
+  const items = await fn(svc, opts);
+  const entries = items
+    .filter((i) => i.start && !Number.isNaN(Date.parse(i.start)))
+    .sort((a, b) => Date.parse(b.start) - Date.parse(a.start));
+  return { entries, coversDays: HISTORY_DAYS[svc.kind] ?? null };
+}
+
+/**
+ * Fasst einen Verlauf zu 30 Tagesbalken zusammen (ältester zuerst).
+ * Jeder Tag bekommt die schlimmste Stufe, die an dem Tag aktiv war, sonst 'ok'.
+ * Tage vor `since` (Beginn der Aufzeichnung) bekommen null = keine Daten.
+ */
+export function dailyBars(history, { days = 30, now = Date.now(), since = null } = {}) {
+  const order = { major: 3, minor: 2, maintenance: 1, ok: 0 };
+  const startOfToday = new Date(now); startOfToday.setHours(0, 0, 0, 0);
+  const bars = [];
+  for (let d = days - 1; d >= 0; d--) {
+    const dayStart = new Date(startOfToday); dayStart.setDate(dayStart.getDate() - d);
+    const dayEnd = new Date(dayStart); dayEnd.setDate(dayEnd.getDate() + 1);
+    if (since && dayEnd.getTime() <= Date.parse(since)) { bars.push(null); continue; }
+    let worst = 'ok';
+    for (const h of history) {
+      const s = Date.parse(h.start); const e = h.end ? Date.parse(h.end) : now;
+      if (s < dayEnd.getTime() && e >= dayStart.getTime() && order[h.level] > order[worst]) worst = h.level;
+    }
+    bars.push(worst);
+  }
+  return bars;
+}
+
+/**
+ * Kalendertage seit dem Ende der letzten Störung (Wartungen zählen nicht):
+ * 0 = heute beendet oder läuft noch, 1 = gestern beendet … null = keine bekannt.
+ */
+export function daysWithoutIncident(history, now = Date.now()) {
+  const incidents = history.filter((h) => h.level !== 'maintenance');
+  if (incidents.some((h) => !h.end)) return 0;
+  const lastEnd = Math.max(...incidents.map((h) => Date.parse(h.end)));
+  if (!Number.isFinite(lastEnd)) return null;
+  const day = (t) => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+  return Math.round((day(now) - day(lastEnd)) / 86400000);
+}
+
 /** Prüft einen Dienst. Wirft nie – Fehler werden zu level 'unknown'. */
 export async function checkService(svc, opts = {}) {
   const fn = checkers[svc.kind];
