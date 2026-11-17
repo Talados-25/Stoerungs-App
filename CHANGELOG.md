@@ -5,6 +5,9 @@ Versionen nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Geändert
+- App-Build lässt sich von Hand für ein bestehendes Release starten und auf einen anderen Mac-Typ ausweichen (bei Engpässen bei GitHub).
+
 ## [1.5.0] – 2026-11-17
 
 ### Hinzugefügt

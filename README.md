@@ -180,4 +180,6 @@ Neue Version veröffentlichen:
 
 `app.json` übernimmt die Version automatisch (Skript `version` in `package.json`).
 Wird auf GitHub ein Release veröffentlicht, baut GitHub automatisch die passende IPA und hängt sie an.
+Hatte GitHub keinen Mac frei (Build „cancelled“, Hinweis „capacity constraints“): *Actions → iOS-App bauen (IPA)
+→ Run workflow*, bei **tag** die Version eintragen (z. B. `v1.5.0`) und bei Bedarf einen anderen Mac-Typ wählen.
 Commit-Nachrichten folgen [Conventional Commits](https://www.conventionalcommits.org/de/) (`feat:`, `fix:`, `docs:` …).

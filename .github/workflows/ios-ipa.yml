@@ -2,7 +2,19 @@ name: iOS-App bauen (IPA)
 # Baut eine unsignierte IPA auf einem Mac-Rechner von GitHub (für öffentliche Repos kostenlos).
 # Signieren & installieren dann mit Sideloadly oder AltStore und deiner Apple-ID.
 on:
-  workflow_dispatch: {}
+  # Von Hand starten (Actions → „iOS-App bauen (IPA)“ → Run workflow), z. B. wenn GitHub
+  # gerade keinen Mac frei hatte: Release-Tag angeben, dann wird die IPA dort angehängt.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release-Tag, an das die IPA angehängt wird (z. B. v1.5.0). Leer = nur Test-Build.'
+        required: false
+        default: ''
+      runner:
+        description: 'Mac-Rechner (bei Engpässen einen anderen Typ wählen)'
+        type: choice
+        options: [macos-latest, macos-15-intel, macos-15]
+        default: macos-latest
   release:
     types: [published]
 permissions:
@@ -10,10 +22,14 @@ permissions:
 concurrency: { group: ios-ipa, cancel-in-progress: true }
 jobs:
   ipa:
-    runs-on: macos-latest
+    runs-on: ${{ inputs.runner || 'macos-latest' }}
     timeout-minutes: 60
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}
       - uses: actions/setup-node@v7
         with: { node-version: 22, cache: npm }
       - run: npm ci
@@ -41,15 +57,18 @@ jobs:
           path: ${{ steps.pack.outputs.file }}
           retention-days: 30
       - name: AltStore-Quelle erzeugen
-        if: github.event_name == 'release'
+        if: env.TAG != ''
         run: |
+          # Beschreibung des Releases: aus dem Ereignis, beim Start von Hand direkt von GitHub
+          if [ -z "$RELEASE_NOTES" ]; then RELEASE_NOTES=$(gh release view "$TAG" --json body -q .body); fi
+          export RELEASE_NOTES
           plutil -convert json -o info.json Payload/Stoerungsmelder.app/Info.plist
           node scripts/make-altstore-source.mjs info.json "${{ steps.pack.outputs.file }}" source.json
         env:
           REPO: ${{ github.repository }}
-          TAG: ${{ github.event.release.tag_name }}
           RELEASE_NOTES: ${{ github.event.release.body }}
+          GH_TOKEN: ${{ github.token }}
       - name: An Release anhängen
-        if: github.event_name == 'release'
-        run: gh release upload "${{ github.event.release.tag_name }}" "${{ steps.pack.outputs.file }}" source.json --clobber
+        if: env.TAG != ''
+        run: gh release upload "$TAG" "${{ steps.pack.outputs.file }}" source.json --clobber
         env: { GH_TOKEN: '${{ github.token }}' }
