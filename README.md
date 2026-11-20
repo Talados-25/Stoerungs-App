@@ -149,6 +149,10 @@ Hinweise: Eine kostenlose Apple-ID erlaubt 3 solcher Apps gleichzeitig (AltStore
 In der installierten App läuft zusätzlich eine Hintergrund-Prüfung; wie oft, entscheidet iOS.
 Zuverlässige Warnungen kommen weiterhin über ntfy.
 
+## Roadmap
+
+Geplante Funktionen, Entscheidungen und offene Punkte stehen in [ROADMAP.md](ROADMAP.md).
+
 ## Projektaufbau
 
 - `App.tsx` – Oberfläche
